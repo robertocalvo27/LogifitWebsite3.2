@@ -1,12 +1,14 @@
 export async function getLatestBlogPosts(limit = 3) {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_STRAPI_API_URL || 'http://127.0.0.1:1337';
-    console.log('Base URL:', baseUrl); // Debug log
+    console.log('[getLatestBlogPosts] Base URL:', baseUrl);
     
-    // Usar la API REST en lugar de GraphQL
-    const url = `${baseUrl}/api/articles?pagination[limit]=${limit}&sort[0]=publishedAt:desc&populate=featuredImage,categories,author`;
-    console.log('Fetching from URL:', url);
+    // Usar la API REST con la estructura de Strapi v5
+    // La ruta correcta debe incluir /api/ para acceder a la API de Strapi
+    const url = `${baseUrl}/api/articles?pagination[limit]=${limit}&sort[0]=publishedAt:desc&populate=*`;
+    console.log('[getLatestBlogPosts] Fetching from URL:', url);
     
+    // Realizar la petición directamente sin usar fetchAPI
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -15,54 +17,83 @@ export async function getLatestBlogPosts(limit = 3) {
       cache: 'no-store',
     });
 
-    console.log('Response status:', response.status); // Debug log
+    console.log('[getLatestBlogPosts] Response status:', response.status);
 
     if (!response.ok) {
-      console.error(`Error en la respuesta: ${response.status} ${response.statusText}`);
+      console.error(`[getLatestBlogPosts] Error en la respuesta: ${response.status} ${response.statusText}`);
       return getDummyBlogPosts();
     }
 
-    const responseData = await response.json();
-    console.log('Response data:', JSON.stringify(responseData, null, 2));
+    const responseText = await response.text();
+    console.log('[getLatestBlogPosts] Response text (primeros 500 caracteres):', responseText.substring(0, 500));
+    
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+      console.log('[getLatestBlogPosts] Response data structure:', Object.keys(responseData));
+      
+      if (responseData.data) {
+        console.log('[getLatestBlogPosts] Data array length:', Array.isArray(responseData.data) ? responseData.data.length : 'Not an array');
+        if (Array.isArray(responseData.data) && responseData.data.length > 0) {
+          console.log('[getLatestBlogPosts] First item keys:', Object.keys(responseData.data[0]));
+        }
+      }
+    } catch (parseError) {
+      console.error('[getLatestBlogPosts] Error parsing JSON response:', parseError);
+      return getDummyBlogPosts();
+    }
     
     // Extraer los artículos de la respuesta
     const articles = responseData.data || [];
     
     if (!articles.length) {
-      console.log('No se encontraron artículos, usando datos de ejemplo');
+      console.log('[getLatestBlogPosts] No se encontraron artículos, usando datos de ejemplo');
       return getDummyBlogPosts();
     }
     
-    // Normalizar los datos para el componente
+    // Normalizar los datos para el componente (formato Strapi v5)
     const normalizedArticles = articles.map((article: any) => {
-      const featuredImage = article.attributes?.featuredImage?.data 
-        ? {
-            url: article.attributes.featuredImage.data.attributes.url || '',
-            alt: article.attributes.featuredImage.data.attributes.alternativeText || '',
-          } 
-        : null;
+      // En Strapi v5, los datos están aplanados (no anidados en attributes)
+      console.log(`[getLatestBlogPosts] Article ${article.id} title:`, article.title);
       
-      console.log('Imagen del artículo:', featuredImage);
+      // Extraer la imagen destacada
+      let featuredImage = null;
+      if (article.featuredImage) {
+        featuredImage = {
+          url: article.featuredImage.url || '',
+          alt: article.featuredImage.alternativeText || '',
+        };
+        console.log(`[getLatestBlogPosts] Article ${article.id} featuredImage:`, featuredImage);
+      }
+      
+      // Extraer categorías
+      const categories = article.categories?.map((cat: any) => ({
+        name: cat.name || '',
+        slug: cat.slug || '',
+      })) || [];
+      
+      console.log(`[getLatestBlogPosts] Article ${article.id} categories:`, categories);
+      
+      // Extraer autor
+      const author = article.author?.name || '';
+      console.log(`[getLatestBlogPosts] Article ${article.id} author:`, author);
       
       return {
         id: article.id || '',
-        title: article.attributes?.title || '',
-        slug: article.attributes?.slug || '',
-        excerpt: article.attributes?.excerpt || '',
-        publishedAt: article.attributes?.publishedAt || '',
+        title: article.title || '',
+        slug: article.slug || '',
+        excerpt: article.excerpt || '',
+        publishedAt: article.publishedAt || '',
         featuredImage,
-        categories: article.attributes?.categories?.data?.map((cat: any) => ({
-          name: cat.attributes.name || '',
-          slug: cat.attributes.slug || '',
-        })) || [],
-        author: article.attributes?.author?.data?.attributes?.name || '',
+        categories,
+        author,
       };
     });
     
-    console.log('Artículos normalizados:', normalizedArticles);
+    console.log('[getLatestBlogPosts] Normalized articles:', normalizedArticles);
     return normalizedArticles;
   } catch (error) {
-    console.error('Error obteniendo últimos artículos del blog:', error);
+    console.error('[getLatestBlogPosts] Error obteniendo últimos artículos del blog:', error);
     return getDummyBlogPosts();
   }
 }

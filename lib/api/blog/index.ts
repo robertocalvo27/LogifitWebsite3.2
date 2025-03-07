@@ -338,36 +338,9 @@ function getCategorySlug(c: Category): string {
  */
 export async function getLatestBlogPosts(limit = 3) {
   try {
-    const response = await fetchAPI('', {
-      query: `
-        query GetLatestBlogPosts {
-          articles(
-            pagination: { limit: ${limit} }
-            sort: "publishedAt:desc"
-          ) {
-            title
-            slug
-            excerpt
-            publishedAt
-            categories {
-              name
-              slug
-            }
-            featuredImage {
-              url
-              alternativeText
-            }
-          }
-        }
-      `
-    });
-
-    if (!response.data?.articles) {
-      console.log('No se encontraron artículos');
-      return [];
-    }
-
-    return response.data.articles.map(normalizeArticleData);
+    // Importar la función actualizada de blog.ts
+    const { getLatestBlogPosts: fetchLatestBlogPosts } = require('./blog');
+    return await fetchLatestBlogPosts(limit);
   } catch (error) {
     console.error('Error obteniendo últimos artículos del blog:', error);
     return [];
