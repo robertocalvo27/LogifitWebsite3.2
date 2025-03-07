@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Shield, Clock, Battery, BarChart3, Award, ChevronRight, Smartphone, MapPin, Users, TrendingUp, Globe, Lightbulb, BookOpen } from "lucide-react";
+import { Shield, Clock, Battery, BarChart3, Award, ChevronRight, Smartphone, MapPin, Users, TrendingUp, Globe, Lightbulb, BookOpen, FileText } from "lucide-react";
 import { getAllServices, getFeaturedServices, getAppHighlightService } from '@/lib/api';
 import { getActiveHero } from '@/lib/api/home';
 import { getLatestBlogPosts } from '@/lib/api/blog';
@@ -18,7 +18,12 @@ interface HomepageService {
     url: string;
     alternativeText?: string;
   };
+  homeImage?: {
+    url: string;
+    alternativeText?: string;
+  };
   slug?: string;
+  Title?: string; // Para compatibilidad con datos antiguos
   // Añadir cualquier otra propiedad que estemos usando en el template
 }
 
@@ -167,8 +172,43 @@ export default async function Home() {
 
     // Obtener los últimos artículos del blog
     console.log('Intentando obtener últimos posts del blog...');
-    const latestBlogPosts = await getLatestBlogPosts(3);
-    console.log('Posts obtenidos:', latestBlogPosts);
+    let latestBlogPosts = [];
+    try {
+      latestBlogPosts = await getLatestBlogPosts(3);
+      console.log('Posts obtenidos:', latestBlogPosts);
+    } catch (error) {
+      console.error('Error al obtener posts del blog:', error);
+      // Usar posts de ejemplo en caso de error
+      latestBlogPosts = [
+        {
+          id: 1,
+          title: "Cómo la fatiga afecta la seguridad en operaciones mineras",
+          slug: "fatiga-seguridad-operaciones-mineras",
+          excerpt: "Descubre cómo la fatiga impacta en la seguridad de las operaciones mineras y qué medidas preventivas implementar.",
+          publishedAt: "2025-02-15T10:00:00.000Z",
+          categories: [{ name: "Seguridad Industrial", slug: "seguridad-industrial" }],
+          author: { name: "Carlos Rodríguez" }
+        },
+        {
+          id: 2,
+          title: "5 tecnologías que están revolucionando la gestión de fatiga",
+          slug: "tecnologias-revolucionando-gestion-fatiga",
+          excerpt: "Analizamos las 5 tecnologías más innovadoras que están transformando la forma en que las empresas gestionan la fatiga laboral.",
+          publishedAt: "2025-01-28T14:30:00.000Z",
+          categories: [{ name: "Tecnología", slug: "tecnologia" }],
+          author: { name: "Ana Martínez" }
+        },
+        {
+          id: 3,
+          title: "Normativa internacional sobre gestión de fatiga en transporte",
+          slug: "normativa-internacional-gestion-fatiga-transporte",
+          excerpt: "Guía completa sobre las regulaciones internacionales que rigen la gestión de fatiga en el sector transporte.",
+          publishedAt: "2025-01-10T09:15:00.000Z",
+          categories: [{ name: "Normativa", slug: "normativa" }],
+          author: { name: "Roberto Méndez" }
+        }
+      ];
+    }
 
     // Añadir log para debug
     console.log('Latest blog posts:', latestBlogPosts);
@@ -241,12 +281,12 @@ export default async function Home() {
             <h2 className="text-3xl font-bold text-center mb-8">Innovación Tecnológica</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {featuredServices.map((service) => (
+              {featuredServices.map((service: HomepageService) => (
                 <div key={service.slug} className="bg-white rounded-lg shadow-lg p-6">
                   {service.homeImage && (
                     <img 
                       src={`${process.env.NEXT_PUBLIC_STRAPI_API_URL}${service.homeImage.url}`}
-                      alt={service.homeImage.alternativeText || service.Title}
+                      alt={service.homeImage.alternativeText || service.title}
                       className="w-full h-48 object-cover rounded-lg mb-4"
                     />
                   )}
@@ -340,7 +380,7 @@ export default async function Home() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {featuredServices.slice(0, 3).map((service: any, index: number) => {
+                {featuredServices.slice(0, 3).map((service: HomepageService, index: number) => {
                   const normalizedService = normalizeServiceData(service);
                   const placeholderImages = [
                     "https://images.unsplash.com/photo-1551816230-ef5deaed4a26?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
@@ -448,25 +488,27 @@ export default async function Home() {
         </section>
 
         {/* Blog Section */}
-        {latestBlogPosts && latestBlogPosts.length > 0 && (
-          <section className="py-16 bg-white">
-            <div className="container mx-auto px-4 md:px-6">
-              <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold mb-4">Blog LOGIFIT</h2>
-                <p className="text-lg text-slate-600 max-w-3xl mx-auto">
-                  Compartimos conocimiento especializado sobre prevención de fatiga.
-                </p>
-              </div>
+        <section className="py-16 bg-white">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold mb-4">Blog LOGIFIT</h2>
+              <p className="text-lg text-slate-600 max-w-3xl mx-auto">
+                Compartimos conocimiento especializado sobre prevención de fatiga.
+              </p>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {latestBlogPosts.map((post) => (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {latestBlogPosts && latestBlogPosts.length > 0 ? (
+                latestBlogPosts.map((post: any) => (
                   <Card key={post.slug} className="border-none shadow-md hover:shadow-lg transition-shadow">
                     <CardContent className="p-0">
                       <div className="relative h-48">
                         {post.featuredImage?.url && (
                           <Image
-                            src={`${process.env.NEXT_PUBLIC_STRAPI_API_URL}${post.featuredImage.url}`}
-                            alt={post.featuredImage.alternativeText || post.title}
+                            src={post.featuredImage.url.startsWith('http') 
+                              ? post.featuredImage.url 
+                              : `${process.env.NEXT_PUBLIC_STRAPI_API_URL}${post.featuredImage.url}`}
+                            alt={post.featuredImage.alt || post.title}
                             fill
                             style={{ objectFit: "cover" }}
                             className="rounded-t-lg"
@@ -492,21 +534,78 @@ export default async function Home() {
                               year: 'numeric'
                             })}
                           </span>
-                          <Link 
-                            href={`/blog/${post.slug}`}
-                            className="text-blue-700 font-medium flex items-center"
-                          >
+                          <Link href={`/blog/${post.slug}`} className="text-blue-700 hover:text-blue-900 flex items-center">
                             Leer más <ChevronRight className="h-4 w-4 ml-1" />
                           </Link>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
+                ))
+              ) : (
+                <>
+                  <Card className="border-none shadow-md hover:shadow-lg transition-shadow">
+                    <CardContent className="p-0">
+                      <div className="relative h-48 bg-gray-200 flex items-center justify-center">
+                        <FileText className="h-12 w-12 text-gray-400" />
+                      </div>
+                      <div className="p-6">
+                        <h3 className="text-xl font-bold mb-2">Cómo la fatiga afecta la seguridad en operaciones mineras</h3>
+                        <p className="text-slate-600 mb-4 line-clamp-2">
+                          Descubre cómo la fatiga impacta en la seguridad de las operaciones mineras y qué medidas preventivas implementar.
+                        </p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-slate-500">15 de febrero, 2025</span>
+                          <Link href="/blog" className="text-blue-700 hover:text-blue-900 flex items-center">
+                            Leer más <ChevronRight className="h-4 w-4 ml-1" />
+                          </Link>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-none shadow-md hover:shadow-lg transition-shadow">
+                    <CardContent className="p-0">
+                      <div className="relative h-48 bg-gray-200 flex items-center justify-center">
+                        <FileText className="h-12 w-12 text-gray-400" />
+                      </div>
+                      <div className="p-6">
+                        <h3 className="text-xl font-bold mb-2">5 tecnologías que están revolucionando la gestión de fatiga</h3>
+                        <p className="text-slate-600 mb-4 line-clamp-2">
+                          Analizamos las 5 tecnologías más innovadoras que están transformando la forma en que las empresas gestionan la fatiga laboral.
+                        </p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-slate-500">28 de enero, 2025</span>
+                          <Link href="/blog" className="text-blue-700 hover:text-blue-900 flex items-center">
+                            Leer más <ChevronRight className="h-4 w-4 ml-1" />
+                          </Link>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-none shadow-md hover:shadow-lg transition-shadow">
+                    <CardContent className="p-0">
+                      <div className="relative h-48 bg-gray-200 flex items-center justify-center">
+                        <FileText className="h-12 w-12 text-gray-400" />
+                      </div>
+                      <div className="p-6">
+                        <h3 className="text-xl font-bold mb-2">Normativa internacional sobre gestión de fatiga en transporte</h3>
+                        <p className="text-slate-600 mb-4 line-clamp-2">
+                          Guía completa sobre las regulaciones internacionales que rigen la gestión de fatiga en el sector transporte.
+                        </p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-slate-500">10 de enero, 2025</span>
+                          <Link href="/blog" className="text-blue-700 hover:text-blue-900 flex items-center">
+                            Leer más <ChevronRight className="h-4 w-4 ml-1" />
+                          </Link>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
             </div>
-          </section>
-        )}
+          </div>
+        </section>
 
         {/* Testimonios */}
         <section className="py-16 bg-slate-50">
