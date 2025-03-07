@@ -196,17 +196,174 @@ logifit-web3.0/
 - Filtrado por industria
 - Llamadas a la acción contextuales
 
-## Integración con Strapi
+## Integración con Strapi v5.0
 
-### API GraphQL
-Ejemplo de consulta para artículos del blog:
+Strapi v5.0 introduce cambios significativos en la estructura de la API y el manejo de datos en comparación con versiones anteriores. Esta sección detalla cómo trabajar correctamente con Strapi v5.0 en este proyecto.
+
+### Cambios Importantes en Strapi v5.0
+
+1. **Rutas de API**: Todas las rutas de API REST deben incluir `/api/` al principio.
+2. **Estructura de Respuesta**: La estructura de respuesta ha cambiado, con datos aplanados en algunos casos.
+3. **Manejo de Relaciones**: Las relaciones se manejan de manera diferente, requiriendo el uso de `populate` para obtener datos relacionados.
+4. **Imágenes y Media**: El acceso a imágenes y archivos multimedia sigue una estructura específica.
+
+### Configuración de la Conexión
+
+Para conectar correctamente con Strapi v5.0, asegúrate de configurar las siguientes variables de entorno:
+
+```bash
+# URL base de la API de Strapi (sin /api/ al final)
+NEXT_PUBLIC_STRAPI_API_URL=http://localhost:1337
+
+# Token de API para autenticación (si es necesario)
+STRAPI_API_TOKEN=tu_token_de_api
+```
+
+### Funciones de Conexión con Strapi
+
+El proyecto utiliza dos funciones principales para conectar con Strapi:
+
+#### 1. Función `fetchAPI` para peticiones REST
+
+```typescript
+export async function fetchAPI(path: string, options = {}) {
+  // Configuración de opciones por defecto
+  const defaultOptions = {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  };
+
+  // Combinar opciones
+  const mergedOptions = {
+    ...defaultOptions,
+    ...options,
+    headers: {
+      ...defaultOptions.headers,
+      ...(options as any).headers,
+    },
+  };
+
+  const baseUrl = process.env.NEXT_PUBLIC_STRAPI_API_URL || 'http://127.0.0.1:1337';
+  
+  // Asegurarse de que la ruta comience con /api/ si no es una ruta de GraphQL
+  let fullPath = path;
+  if (!path.startsWith('/api/') && !path.includes('/graphql')) {
+    fullPath = `/api${path.startsWith('/') ? path : `/${path}`}`;
+  }
+
+  const url = `${baseUrl}${fullPath}`;
+  
+  // Realizar la petición
+  const res = await fetch(url, mergedOptions);
+  
+  if (!res.ok) {
+    throw new Error(`Error en la respuesta: ${res.status} ${res.statusText}`);
+  }
+  
+  // Procesar la respuesta como JSON
+  const data = await res.json();
+  return data;
+}
+```
+
+#### 2. Función `fetchGraphQL` para peticiones GraphQL
+
+```typescript
+export async function fetchGraphQL(options: GraphQLRequest) {
+  const apiUrl = process.env.NEXT_PUBLIC_STRAPI_API_URL || 'http://127.0.0.1:1337';
+  const fetchUrl = `${apiUrl}/graphql`;
+  
+  const mergedOptions = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(options)
+  };
+
+  const res = await fetch(fetchUrl, mergedOptions);
+  
+  if (!res.ok) {
+    throw new Error(`Error en la respuesta: ${res.status} ${res.statusText}`);
+  }
+  
+  const data = await res.json();
+  
+  if (data.errors) {
+    throw new Error(`GraphQL Error: ${data.errors[0].message}`);
+  }
+  
+  return data;
+}
+```
+
+### Ejemplos de Uso de la API REST
+
+#### Obtener Artículos del Blog
+
+```typescript
+export async function getLatestBlogPosts(limit = 3) {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_STRAPI_API_URL || 'http://127.0.0.1:1337';
+    
+    // Construir URL con parámetros de paginación, ordenación y populate
+    const url = `${baseUrl}/api/articles?pagination[limit]=${limit}&sort[0]=publishedAt:desc&populate=*`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error en la respuesta: ${response.status} ${response.statusText}`);
+    }
+
+    const responseData = await response.json();
+    
+    // Extraer los artículos de la respuesta
+    const articles = responseData.data || [];
+    
+    // Normalizar los datos para el componente
+    return articles.map((article) => ({
+      id: article.id,
+      title: article.attributes.title,
+      slug: article.attributes.slug,
+      excerpt: article.attributes.excerpt,
+      publishedAt: article.attributes.publishedAt,
+      featuredImage: article.attributes.featuredImage?.data ? {
+        url: article.attributes.featuredImage.data.attributes.url,
+        alt: article.attributes.featuredImage.data.attributes.alternativeText,
+      } : null,
+      categories: article.attributes.categories?.data?.map(cat => ({
+        name: cat.attributes.name,
+        slug: cat.attributes.slug,
+      })) || [],
+      author: article.attributes.author?.data?.attributes?.name || '',
+    }));
+  } catch (error) {
+    console.error('Error obteniendo artículos:', error);
+    return [];
+  }
+}
+```
+
+### Ejemplos de Consultas GraphQL
+
+#### Consulta para Obtener Artículos Recientes
+
 ```graphql
 query GetLatestArticles($limit: Int = 3) {
   articles(
     pagination: { limit: $limit }
     sort: ["publishedAt:desc"]
+    filters: { publishedAt: { notNull: true } }
   ) {
     data {
+      id
       attributes {
         title
         slug
@@ -241,24 +398,44 @@ query GetLatestArticles($limit: Int = 3) {
 }
 ```
 
-### Estructura de Datos en Strapi v5
-Strapi v5 utiliza una estructura anidada con `data` y `attributes` para todos los tipos de contenido y relaciones. Por ejemplo:
+#### Consulta para Obtener un Artículo por Slug
 
-```javascript
-// Estructura de un artículo en Strapi v5
-{
-  "data": {
-    "id": 1,
-    "attributes": {
-      "title": "Título del artículo",
-      "slug": "titulo-del-articulo",
-      "content": "Contenido del artículo...",
-      "publishedAt": "2023-01-01T00:00:00.000Z",
-      "featuredImage": {
-        "data": {
-          "attributes": {
-            "url": "/uploads/imagen.jpg",
-            "alternativeText": "Descripción de la imagen"
+```graphql
+query GetArticleBySlug($slug: String!) {
+  articles(filters: { slug: { eq: $slug } }) {
+    data {
+      id
+      attributes {
+        title
+        slug
+        content
+        excerpt
+        publishedAt
+        updatedAt
+        featuredImage {
+          data {
+            attributes {
+              url
+              alternativeText
+              width
+              height
+            }
+          }
+        }
+        categories {
+          data {
+            attributes {
+              name
+              slug
+            }
+          }
+        }
+        author {
+          data {
+            attributes {
+              name
+              bio
+            }
           }
         }
       }
@@ -266,6 +443,180 @@ Strapi v5 utiliza una estructura anidada con `data` y `attributes` para todos lo
   }
 }
 ```
+
+## Manejo de Imágenes en Strapi v5.0
+
+El manejo de imágenes en Strapi v5.0 requiere especial atención debido a la estructura anidada de los datos y la forma en que se accede a las URLs.
+
+### Estructura de Datos de Imágenes
+
+En Strapi v5.0, las imágenes siguen esta estructura:
+
+```javascript
+{
+  "data": {
+    "id": 1,
+    "attributes": {
+      "url": "/uploads/imagen.jpg",
+      "alternativeText": "Descripción de la imagen",
+      "width": 800,
+      "height": 600,
+      "formats": {
+        "thumbnail": {
+          "url": "/uploads/thumbnail_imagen.jpg",
+          "width": 156,
+          "height": 156
+        },
+        "small": {
+          "url": "/uploads/small_imagen.jpg",
+          "width": 500,
+          "height": 375
+        }
+      }
+    }
+  }
+}
+```
+
+### Acceso a URLs de Imágenes
+
+Para acceder correctamente a las URLs de imágenes, es necesario:
+
+1. Navegar por la estructura anidada
+2. Combinar la URL base de Strapi con la ruta relativa de la imagen
+
+```typescript
+// Función para obtener la URL completa de una imagen
+function getStrapiImageUrl(image: any): string {
+  if (!image || !image.data || !image.data.attributes || !image.data.attributes.url) {
+    return '/placeholder-image.jpg'; // Imagen por defecto
+  }
+  
+  const baseUrl = process.env.NEXT_PUBLIC_STRAPI_API_URL || 'http://127.0.0.1:1337';
+  const imageUrl = image.data.attributes.url;
+  
+  // Si la URL ya es absoluta, devolverla tal cual
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  
+  // Combinar la URL base con la ruta relativa
+  return `${baseUrl}${imageUrl}`;
+}
+
+// Ejemplo de uso en un componente
+const articleImage = getStrapiImageUrl(article.attributes.featuredImage);
+```
+
+### Acceso a Formatos de Imagen
+
+Strapi v5.0 genera automáticamente diferentes formatos de imagen (thumbnail, small, medium, large). Para acceder a estos formatos:
+
+```typescript
+// Función para obtener un formato específico de imagen
+function getStrapiImageFormat(image: any, format: 'thumbnail' | 'small' | 'medium' | 'large'): string {
+  if (!image || !image.data || !image.data.attributes) {
+    return '/placeholder-image.jpg';
+  }
+  
+  const baseUrl = process.env.NEXT_PUBLIC_STRAPI_API_URL || 'http://127.0.0.1:1337';
+  const attributes = image.data.attributes;
+  
+  // Si se especifica un formato y existe, usarlo
+  if (format && attributes.formats && attributes.formats[format] && attributes.formats[format].url) {
+    return `${baseUrl}${attributes.formats[format].url}`;
+  }
+  
+  // Usar la imagen original
+  if (attributes.url) {
+    return `${baseUrl}${attributes.url}`;
+  }
+  
+  return '/placeholder-image.jpg';
+}
+
+// Ejemplo de uso para obtener la versión thumbnail
+const thumbnailUrl = getStrapiImageFormat(article.attributes.featuredImage, 'thumbnail');
+```
+
+### Componente de Imagen Optimizado
+
+Para facilitar el uso de imágenes de Strapi v5.0 con Next.js, se recomienda crear un componente reutilizable:
+
+```tsx
+import Image from 'next/image';
+import { useState } from 'react';
+
+interface StrapiImageProps {
+  image: any;
+  format?: 'thumbnail' | 'small' | 'medium' | 'large';
+  width?: number;
+  height?: number;
+  className?: string;
+  alt?: string;
+}
+
+export function StrapiImage({ 
+  image, 
+  format, 
+  width, 
+  height, 
+  className = '', 
+  alt = 'Imagen' 
+}: StrapiImageProps) {
+  const [error, setError] = useState(false);
+  
+  // Obtener la URL de la imagen
+  const getImageUrl = () => {
+    if (error || !image || !image.data || !image.data.attributes) {
+      return '/placeholder-image.jpg';
+    }
+    
+    const baseUrl = process.env.NEXT_PUBLIC_STRAPI_API_URL || 'http://127.0.0.1:1337';
+    const attributes = image.data.attributes;
+    
+    // Si se especifica un formato y existe, usarlo
+    if (format && attributes.formats && attributes.formats[format] && attributes.formats[format].url) {
+      return `${baseUrl}${attributes.formats[format].url}`;
+    }
+    
+    // Usar la imagen original
+    if (attributes.url) {
+      return `${baseUrl}${attributes.url}`;
+    }
+    
+    return '/placeholder-image.jpg';
+  };
+  
+  // Obtener el texto alternativo
+  const getAltText = () => {
+    if (!image || !image.data || !image.data.attributes) {
+      return alt;
+    }
+    
+    return image.data.attributes.alternativeText || alt;
+  };
+  
+  return (
+    <Image
+      src={getImageUrl()}
+      alt={getAltText()}
+      width={width || (image?.data?.attributes?.width || 800)}
+      height={height || (image?.data?.attributes?.height || 600)}
+      className={className}
+      onError={() => setError(true)}
+    />
+  );
+}
+```
+
+### Buenas Prácticas para el Manejo de Imágenes
+
+1. **Siempre Verificar la Estructura**: Antes de acceder a propiedades anidadas, verificar que existan para evitar errores.
+2. **Proporcionar Imágenes por Defecto**: Siempre tener una imagen de respaldo en caso de que la imagen de Strapi no esté disponible.
+3. **Utilizar Formatos Optimizados**: Aprovechar los diferentes formatos que genera Strapi para optimizar el rendimiento.
+4. **Manejar Errores de Carga**: Implementar manejo de errores para cuando las imágenes no se puedan cargar.
+5. **Utilizar Lazy Loading**: Aprovechar las capacidades de lazy loading de Next.js para mejorar el rendimiento.
 
 ## Configuración del Entorno
 
@@ -389,17 +740,6 @@ El proyecto incluye varias herramientas de depuración para facilitar el desarro
 - **ApiDataDebugger**: Componente para depurar respuestas de la API
 - **DebugImage**: Herramienta para probar diferentes variantes de URLs de imágenes
 - **Console Logs**: Logs estratégicos para seguir el flujo de datos
-
-## Manejo de Imágenes en Strapi v5
-
-Para acceder correctamente a las imágenes en Strapi v5, es necesario seguir la estructura anidada:
-
-```typescript
-// Acceso a la URL de una imagen en Strapi v5
-const imageUrl = article.featuredImage?.data?.attributes?.url
-  ? `${process.env.NEXT_PUBLIC_STRAPI_API_URL}${article.featuredImage.data.attributes.url}`
-  : '/placeholder-image.jpg';
-```
 
 ## Scripts de Utilidad
 

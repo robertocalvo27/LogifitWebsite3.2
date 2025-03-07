@@ -58,58 +58,130 @@ const formatDate = (dateString: string): string => {
   }
 };
 
-// Actualizar la función getCategoryBySlug para usar GraphQL
+// Actualizar la función getCategoryBySlug para usar la API REST
 async function getCategoryBySlug(slug: string): Promise<Category | null> {
   try {
-    const response = await fetchAPI('', {
-      query: `
-        query GetArticlesByCategory($slug: String!) {
-          categories(filters: { slug: { eq: $slug } }) {
-            name
-            slug
-            description
-            articles {
-              title
-              slug
-              excerpt
-              content
-              featuredImage {
-                url
-                alternativeText
-              }
-              author {
-                name
-                position
-              }
-              publishedAt
+    console.log('[getCategoryBySlug] Fetching category with slug:', slug);
+    
+    const baseUrl = process.env.NEXT_PUBLIC_STRAPI_API_URL || 'http://127.0.0.1:1337';
+    
+    // 1. Primero obtenemos la categoría
+    const categoryUrl = `${baseUrl}/api/categories?filters[slug][$eq]=${slug}`;
+    console.log('[getCategoryBySlug] Fetching category from URL:', categoryUrl);
+    
+    const categoryResponse = await fetch(categoryUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+    
+    if (!categoryResponse.ok) {
+      console.error(`[getCategoryBySlug] Error en la respuesta de categoría: ${categoryResponse.status} ${categoryResponse.statusText}`);
+      return null;
+    }
+    
+    const categoryData = await categoryResponse.json();
+    const categories = categoryData.data || [];
+    
+    if (!categories.length) {
+      console.log('[getCategoryBySlug] No se encontró la categoría con slug:', slug);
+      return null;
+    }
+    
+    const category = categories[0];
+    const categoryId = category.id;
+    const categoryAttributes = category.attributes || category;
+    
+    console.log('[getCategoryBySlug] Category found:', {
+      id: categoryId,
+      name: categoryAttributes.name,
+      slug: categoryAttributes.slug
+    });
+    
+    // 2. Ahora buscamos los artículos que pertenecen a esta categoría
+    const articlesUrl = `${baseUrl}/api/articles?filters[categories][slug][$eq]=${slug}&populate=*`;
+    console.log('[getCategoryBySlug] Fetching articles for category from URL:', articlesUrl);
+    
+    const articlesResponse = await fetch(articlesUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+    
+    if (!articlesResponse.ok) {
+      console.error(`[getCategoryBySlug] Error en la respuesta de artículos: ${articlesResponse.status} ${articlesResponse.statusText}`);
+      return null;
+    }
+    
+    const articlesData = await articlesResponse.json();
+    const articles = articlesData.data || [];
+    
+    console.log('[getCategoryBySlug] Found articles for category:', articles.length);
+    
+    // 3. Normalizamos los datos para el componente
+    return {
+      name: categoryAttributes.name,
+      slug: categoryAttributes.slug,
+      description: categoryAttributes.description || '',
+      articles: articles.map((article: any) => {
+        const articleData = article.attributes || article;
+        
+        // Verificar la estructura de featuredImage
+        console.log('[getCategoryBySlug] Article featuredImage structure:', 
+          articleData.featuredImage ? JSON.stringify(articleData.featuredImage).substring(0, 200) : 'No featuredImage');
+        
+        // Extraer correctamente la URL de la imagen
+        let featuredImage = null;
+        if (articleData.featuredImage) {
+          // Si es un objeto directo (como en la estructura antigua)
+          if (articleData.featuredImage.url) {
+            featuredImage = {
+              url: articleData.featuredImage.url,
+              alternativeText: articleData.featuredImage.alternativeText || articleData.title || '',
+            };
+          } 
+          // Si es la estructura de Strapi v5 con data y attributes
+          else if (articleData.featuredImage.data) {
+            const imageData = articleData.featuredImage.data;
+            if (imageData.attributes) {
+              featuredImage = {
+                url: imageData.attributes.url,
+                alternativeText: imageData.attributes.alternativeText || articleData.title || '',
+              };
+            } else {
+              featuredImage = {
+                url: imageData.url || '',
+                alternativeText: imageData.alternativeText || articleData.title || '',
+              };
             }
           }
         }
-      `,
-      variables: {
-        slug: slug
-      }
-    });
-
-    const category = response.data?.categories?.[0];
-    if (!category) return null;
-
-    return {
-      name: category.name,
-      slug: category.slug,
-      description: category.description,
-      articles: category.articles.map(article => ({
-        title: article.title,
-        slug: article.slug,
-        excerpt: article.excerpt,
-        content: article.content,
-        publishedAt: article.publishedAt,
-        featuredImage: article.featuredImage,
-        author: article.author
-      }))
+        
+        if (featuredImage) {
+          console.log('[getCategoryBySlug] Processed featuredImage:', featuredImage);
+        }
+        
+        return {
+          id: article.id, // Añadir el ID para la key en el renderizado
+          title: articleData.title,
+          slug: articleData.slug,
+          excerpt: articleData.excerpt || '',
+          content: articleData.content || '',
+          publishedAt: articleData.publishedAt,
+          featuredImage: featuredImage,
+          author: articleData.author?.data ? {
+            name: articleData.author.data.attributes.name,
+            position: articleData.author.data.attributes.position || '',
+          } : { name: '', position: '' },
+        };
+      }),
     };
   } catch (error) {
-    console.error('Error:', error);
+    console.error('[getCategoryBySlug] Error fetching category:', error);
     return null;
   }
 }

@@ -41,7 +41,7 @@ export default async function BlogPage({
 
   console.log("Estado de los artículos:", {
     totalArticles: articles?.length || 0,
-    firstArticle: articles?.[0],
+    firstArticle: articles?.[0] ? JSON.stringify(articles[0]).substring(0, 200) + '...' : 'No hay artículos',
     categories: categories?.length || 0
   });
 
@@ -54,6 +54,12 @@ export default async function BlogPage({
         article.categories?.some((cat: any) => cat.slug === selectedCategory)
       )
     : articles;
+
+  console.log('BlogPage - Artículos a mostrar:', displayedArticles.length);
+  
+  if (displayedArticles.length > 0) {
+    console.log('BlogPage - Primer artículo a mostrar:', JSON.stringify(displayedArticles[0]).substring(0, 200) + '...');
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
