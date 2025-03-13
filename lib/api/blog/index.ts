@@ -250,7 +250,8 @@ export async function getArticleBySlug(slug: string) {
     console.log('[getArticleBySlug] Base URL:', baseUrl);
     
     // Usar la API REST con la estructura de Strapi v5
-    const url = `${baseUrl}/api/articles?filters[slug][$eq]=${slug}&populate=deep`;
+    // Usar populate=* para obtener todos los datos relacionados
+    const url = `${baseUrl}/api/articles?filters[slug][$eq]=${slug}&populate=*`;
     console.log('[getArticleBySlug] Fetching from URL:', url);
     
     const response = await fetch(url, {
@@ -308,7 +309,7 @@ export async function getArticleBySlug(slug: string) {
     console.log('[getArticleBySlug] CTA data:', articleData.cta);
     
     // Normalizar los datos para el componente (formato Strapi v5)
-    return {
+    const normalizedArticle = {
       id: article.id,
       title: articleData.title,
       slug: articleData.slug,
@@ -317,79 +318,41 @@ export async function getArticleBySlug(slug: string) {
       publishedAt: articleData.publishedAt,
       updatedAt: articleData.updatedAt,
       // Imagen destacada - mantener la estructura completa para que StrapiImage pueda manejarla
-      featuredImage: articleData.featuredImage,
+      featuredImage: articleData.featuredImage || null,
       // Categorías
-      categories: articleData.categories?.data?.map((cat: any) => ({
-        id: cat.id,
-        name: cat.attributes.name,
-        slug: cat.attributes.slug,
-      })) || [],
+      categories: articleData.categories || [],
       // Autor
-      author: articleData.author?.data ? {
-        name: articleData.author.data.attributes.name,
-        position: articleData.author.data.attributes.position || '',
-        bio: articleData.author.data.attributes.bio || '',
-      } : null,
+      author: articleData.author || null,
       // Webinars - mantener la estructura completa para que StrapiImage pueda manejarla
-      webinars: articleData.webinars?.data?.map((webinar: any) => ({
-        Title: webinar.attributes.Title,
-        Description: webinar.attributes.Description,
-        VideoURL: webinar.attributes.VideoURL,
-        Date: webinar.attributes.Date,
-        Duration: webinar.attributes.Duration,
-        Presenter: webinar.attributes.Presenter,
-        FeaturedImage: webinar.attributes.FeaturedImage,
-      })) || [],
+      webinars: articleData.webinars || [],
       // Recursos - mantener la estructura completa para que StrapiImage pueda manejarla
-      resources: articleData.resources?.data?.map((resource: any) => ({
-        Title: resource.attributes.Title,
-        Description: resource.attributes.Description,
-        Type: resource.attributes.Type,
-        URL: resource.attributes.URL,
-        File: resource.attributes.File?.data ? {
-          url: resource.attributes.File.data.attributes.url,
-          name: resource.attributes.File.data.attributes.name,
-        } : null,
-        FeaturedImage: resource.attributes.FeaturedImage,
-        Date: resource.attributes.Date,
-      })) || [],
+      resources: articleData.resources || [],
       // Reels - mantener la estructura completa para que StrapiImage pueda manejarla
-      reels: articleData.reels?.data?.map((reel: any) => ({
-        Title: reel.attributes.Title,
-        Description: reel.attributes.Description,
-        Duration: reel.attributes.Duration,
-        VideoURL: reel.attributes.VideoURL,
-        ThumbnailURL: reel.attributes.ThumbnailURL,
-        PublishedDate: reel.attributes.PublishedDate,
-      })) || [],
+      reels: articleData.reels || [],
       // Artículos relacionados - mantener la estructura completa para que StrapiImage pueda manejarla
-      related_articles: articleData.related_articles?.data?.map((relatedArticle: any) => ({
-        title: relatedArticle.attributes.title,
-        slug: relatedArticle.attributes.slug,
-        excerpt: relatedArticle.attributes.excerpt,
-        featuredImage: relatedArticle.attributes.featuredImage,
-        publishedAt: relatedArticle.attributes.publishedAt,
-      })) || [],
+      related_articles: articleData.related_articles || [],
       // CTA
-      cta: articleData.cta?.data ? {
-        title: articleData.cta.data.attributes.title,
-        description: articleData.cta.data.attributes.description,
-        buttonText: articleData.cta.data.attributes.buttonText,
-        buttonUrl: articleData.cta.data.attributes.buttonUrl,
-        backgroundColor: articleData.cta.data.attributes.backgroundColor,
-      } : null,
+      cta: articleData.cta && articleData.cta.length > 0 ? articleData.cta[0] : null,
       // Video snippets para incrustar en el contenido
-      videoSnippets: articleData.videoSnippets?.data?.map((snippet: any) => ({
-        id: snippet.id,
-        title: snippet.attributes.title,
-        url: snippet.attributes.url,
-        duration: snippet.attributes.duration,
-      })) || [],
+      videoSnippets: articleData.videoSnippets || [],
       // Video reel para la vista previa
-      videoReel: articleData.videoReel?.data ? {
-        thumbnail: articleData.videoReel.data.attributes.thumbnail,
-      } : null,
+      videoReel: articleData.videoReel || null,
     };
+
+    console.log('[getArticleBySlug] Normalized article:', {
+      title: normalizedArticle.title,
+      hasWebinars: normalizedArticle.webinars?.length > 0,
+      webinarsCount: normalizedArticle.webinars?.length,
+      hasResources: normalizedArticle.resources?.length > 0,
+      resourcesCount: normalizedArticle.resources?.length,
+      hasReels: normalizedArticle.reels?.length > 0,
+      reelsCount: normalizedArticle.reels?.length,
+      hasRelatedArticles: normalizedArticle.related_articles?.length > 0,
+      relatedArticlesCount: normalizedArticle.related_articles?.length,
+      hasCta: !!normalizedArticle.cta,
+    });
+
+    return normalizedArticle;
   } catch (error) {
     console.error('[getArticleBySlug] Error fetching article:', error);
     return null;

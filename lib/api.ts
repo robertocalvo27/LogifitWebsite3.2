@@ -265,7 +265,7 @@ export async function getCaseStudyBySlug(slug: string) {
  * @returns Datos de la página de inicio
  */
 export async function getHomePage() {
-  const data = await fetchAPI('/api/home?populate=deep');
+  const data = await fetchAPI('/api/home?populate=*');
   
   return data?.data?.attributes || null;
 }
@@ -275,7 +275,7 @@ export async function getHomePage() {
  * @returns Datos de la página Acerca de
  */
 export async function getAboutPage() {
-  const data = await fetchAPI('/api/about?populate=deep');
+  const data = await fetchAPI('/api/about?populate=*');
   
   return data?.data?.attributes || null;
 }
@@ -285,7 +285,7 @@ export async function getAboutPage() {
  * @returns Datos de la página de contacto
  */
 export async function getContactPage() {
-  const data = await fetchAPI('/api/contact?populate=deep');
+  const data = await fetchAPI('/api/contact?populate=*');
   
   return data?.data?.attributes || null;
 }

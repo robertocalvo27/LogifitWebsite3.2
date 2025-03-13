@@ -220,27 +220,32 @@ function getYouTubeEmbedUrl(url: string): string {
   // Detectar si es un YouTube Short
   if (url.includes('/shorts/')) {
     // Extraer el ID del video
-    const videoId = url.split('/shorts/')[1].split('?')[0];
-    return `https://www.youtube.com/embed/${videoId}`;
+    const videoId = url.split('/shorts/')[1]?.split('?')[0];
+    if (videoId) {
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
   }
   
   // Para videos regulares de YouTube
   if (url.includes('youtube.com/watch')) {
-    const videoId = url.split('v=')[1].split('&')[0];
-    return `https://www.youtube.com/embed/${videoId}`;
+    const videoId = url.split('v=')[1]?.split('&')[0];
+    if (videoId) {
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
   }
   
+  // Si no se pudo extraer el ID, devolver la URL original
+  console.log('No se pudo extraer el ID de YouTube de la URL:', url);
   return url;
 }
 
 // Esta función se ejecuta en el servidor en tiempo de build o en cada solicitud en desarrollo
 export default async function ArticlePage({ params }: ArticlePageProps) {
-  console.log("Fetching article with slug:", params.slug);
-  
   try {
     const article = await getArticleBySlug(params.slug);
     
     if (!article) {
+      console.error(`Artículo no encontrado: ${params.slug}`);
       return notFound();
     }
 
@@ -281,35 +286,17 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     console.log("Artículo obtenido:", JSON.stringify(article, null, 2).substring(0, 300) + "...");
 
     // Añadir log para depuración
-    console.log('Detalle del artículo:', {
-      slug: params.slug,
-      featuredImage: article.featuredImage,
-      content: article.content.substring(0, 100) // primeros 100 caracteres
-    });
-
-    // Añade este console.log para ver toda la data que llega al detalle
-    console.log('Datos completos del artículo en detalle:', article);
-
-    // Añadir este log justo antes del render de la imagen
-    console.log('URL de imagen en detalle:', article.featuredImage);
-
-    console.log("Webinars data:", article.webinars);
-
-    // Añadir este console.log antes del return
-    console.log("Article data before render:", {
+    console.log('Datos del artículo cargados:', {
       title: article.title,
       hasWebinars: article.webinars ? 'yes' : 'no',
       webinarsCount: article.webinars?.length,
-      webinarsData: article.webinars
-    });
-
-    // Añadir este log para debug
-    console.log('Datos del artículo para sidebar:', {
-      hasCta: !!article.cta,
-      hasWebinars: !!article.webinars?.length,
-      hasResources: !!article.resources?.length,
-      hasReels: !!article.reels?.length,
-      hasRelatedArticles: !!article.related_articles?.length
+      hasResources: article.resources ? 'yes' : 'no',
+      resourcesCount: article.resources?.length,
+      hasReels: article.reels ? 'yes' : 'no',
+      reelsCount: article.reels?.length,
+      hasRelatedArticles: article.related_articles ? 'yes' : 'no',
+      relatedArticlesCount: article.related_articles?.length,
+      hasCta: article.cta ? 'yes' : 'no'
     });
 
     return (
@@ -472,11 +459,13 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                       <DialogTrigger asChild>
                         <div className="border border-gray-100 rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
                           <div className="relative aspect-video bg-gray-100">
-                            <StrapiImage
-                              image={webinar.FeaturedImage}
-                              alt={webinar.Title}
-                              className="object-cover"
-                            />
+                            {webinar.FeaturedImage && (
+                              <StrapiImage
+                                image={webinar.FeaturedImage}
+                                alt={webinar.Title}
+                                className="object-cover"
+                              />
+                            )}
                             <div className="absolute inset-0 bg-black/20 hover:bg-black/30 transition-colors flex items-center justify-center">
                               <span className="w-12 h-12 flex items-center justify-center rounded-full bg-white/90">
                                 <Play className="w-6 h-6 text-blue-600" />
@@ -554,13 +543,15 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                       className="flex items-start p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex-shrink-0 relative w-12 h-12">
-                        <StrapiImage
-                          image={resource.FeaturedImage}
-                          alt={resource.Title}
-                          width={48}
-                          height={48}
-                          className="object-cover rounded-lg"
-                        />
+                        {resource.FeaturedImage && (
+                          <StrapiImage
+                            image={resource.FeaturedImage}
+                            alt={resource.Title}
+                            width={48}
+                            height={48}
+                            className="object-cover rounded-lg"
+                          />
+                        )}
                       </div>
                       <div className="ml-4 flex-grow">
                         <h4 className="font-medium text-gray-900">{resource.Title}</h4>

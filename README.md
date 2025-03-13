@@ -203,9 +203,188 @@ Strapi v5.0 introduce cambios significativos en la estructura de la API y el man
 ### Cambios Importantes en Strapi v5.0
 
 1. **Rutas de API**: Todas las rutas de API REST deben incluir `/api/` al principio.
-2. **Estructura de Respuesta**: La estructura de respuesta ha cambiado, con datos aplanados en algunos casos.
+2. **Estructura de Respuesta**: La estructura de respuesta ha cambiado, con datos aplanados en algunos casos y más anidados en otros.
 3. **Manejo de Relaciones**: Las relaciones se manejan de manera diferente, requiriendo el uso de `populate` para obtener datos relacionados.
-4. **Imágenes y Media**: El acceso a imágenes y archivos multimedia sigue una estructura específica.
+4. **Imágenes y Media**: El acceso a imágenes y archivos multimedia sigue una estructura específica y más anidada.
+5. **Filtros y Consultas**: La sintaxis para filtros y consultas ha cambiado, utilizando corchetes para parámetros anidados.
+
+### Lecciones Aprendidas y Soluciones Implementadas
+
+#### 1. Estructura de Datos Inconsistente
+
+**Problema**: La estructura de datos puede variar entre diferentes endpoints y tipos de contenido, lo que dificulta el procesamiento uniforme.
+
+**Solución**: Implementar funciones de normalización robustas que puedan manejar diferentes estructuras:
+
+```typescript
+// Función para normalizar datos de artículos independientemente de su estructura
+export function normalizeArticleData(article: any) {
+  // Verificar si los datos están en article.attributes o directamente en article
+  const articleData = article.attributes || article;
+  
+  return {
+    id: article.id,
+    title: articleData.title,
+    slug: articleData.slug,
+    excerpt: articleData.excerpt || '',
+    content: articleData.content || '',
+    publishedAt: articleData.publishedAt,
+    // Procesamiento robusto de imágenes
+    featuredImage: processImageData(articleData.featuredImage),
+    // Procesamiento robusto de categorías
+    categories: processCategoriesData(articleData.categories),
+    // Procesamiento robusto de autor
+    author: processAuthorData(articleData.author),
+  };
+}
+```
+
+#### 2. Manejo de Imágenes
+
+**Problema**: Las imágenes en Strapi v5.0 tienen una estructura anidada compleja que puede variar según el contexto.
+
+**Solución**: Crear funciones específicas para procesar imágenes que puedan manejar diferentes estructuras:
+
+```typescript
+// Función para procesar datos de imágenes de manera robusta
+function processImageData(imageData: any) {
+  if (!imageData) return null;
+  
+  // Caso 1: Estructura directa con URL
+  if (imageData.url) {
+    return {
+      url: imageData.url,
+      alternativeText: imageData.alternativeText || '',
+    };
+  }
+  
+  // Caso 2: Estructura con data y attributes (Strapi v5)
+  if (imageData.data) {
+    const data = imageData.data;
+    
+    // Caso 2.1: Estructura con attributes
+    if (data.attributes) {
+      return {
+        url: data.attributes.url,
+        alternativeText: data.attributes.alternativeText || '',
+      };
+    }
+    
+    // Caso 2.2: Estructura sin attributes
+    if (data.url) {
+      return {
+        url: data.url,
+        alternativeText: data.alternativeText || '',
+      };
+    }
+  }
+  
+  return null;
+}
+```
+
+#### 3. Relaciones Bidireccionales
+
+**Problema**: Las relaciones bidireccionales (como artículos en categorías y categorías en artículos) no siempre están correctamente pobladas en ambas direcciones.
+
+**Solución**: Implementar un enfoque de consulta en dos pasos para obtener datos relacionados:
+
+```typescript
+// Ejemplo: Obtener artículos por categoría
+async function getArticlesByCategory(categorySlug: string) {
+  // Paso 1: Obtener la categoría por su slug
+  const categoryUrl = `${baseUrl}/api/categories?filters[slug][$eq]=${categorySlug}`;
+  const categoryResponse = await fetch(categoryUrl);
+  const categoryData = await categoryResponse.json();
+  
+  if (!categoryData.data.length) return [];
+  
+  const categoryId = categoryData.data[0].id;
+  
+  // Paso 2: Obtener artículos que pertenecen a esta categoría
+  const articlesUrl = `${baseUrl}/api/articles?filters[categories][slug][$eq]=${categorySlug}&populate=*`;
+  const articlesResponse = await fetch(articlesUrl);
+  const articlesData = await articlesResponse.json();
+  
+  return normalizeArticlesData(articlesData.data);
+}
+```
+
+#### 4. Filtros y Consultas Complejas
+
+**Problema**: La sintaxis para filtros y consultas en Strapi v5.0 es más compleja y requiere el uso de corchetes para parámetros anidados.
+
+**Solución**: Utilizar funciones de ayuda para construir URLs de consulta:
+
+```typescript
+// Función para construir URLs de consulta complejas
+function buildQueryUrl(baseUrl: string, endpoint: string, filters: any, populate: string[] = ['*']) {
+  let url = `${baseUrl}/api/${endpoint}?`;
+  
+  // Añadir filtros
+  Object.entries(filters).forEach(([key, value], index) => {
+    if (typeof value === 'object' && value !== null) {
+      Object.entries(value as any).forEach(([subKey, subValue]) => {
+        url += `filters[${key}][${subKey}]=${subValue}&`;
+      });
+    } else {
+      url += `filters[${key}]=${value}&`;
+    }
+  });
+  
+  // Añadir populate
+  populate.forEach(item => {
+    url += `populate=${item}&`;
+  });
+  
+  return url.slice(0, -1); // Eliminar el último &
+}
+
+// Ejemplo de uso
+const url = buildQueryUrl(
+  'http://localhost:1337',
+  'articles',
+  { 
+    categories: { slug: 'tecnologia' },
+    publishedAt: { $ne: null }
+  },
+  ['featuredImage', 'categories', 'author']
+);
+```
+
+#### 5. Manejo de Errores y Validación
+
+**Problema**: Las respuestas de error de Strapi v5.0 pueden ser inconsistentes y difíciles de depurar.
+
+**Solución**: Implementar un sistema robusto de manejo de errores y validación:
+
+```typescript
+async function fetchWithErrorHandling(url: string, options = {}) {
+  try {
+    console.log(`[fetchAPI] Fetching from URL: ${url}`);
+    
+    const response = await fetch(url, options);
+    
+    if (!response.ok) {
+      console.error(`[fetchAPI] Error en la respuesta: ${response.status} ${response.statusText}`);
+      return { error: `Error ${response.status}: ${response.statusText}`, data: null };
+    }
+    
+    const data = await response.json();
+    
+    // Validar la estructura de datos esperada
+    if (!data || (data.data === undefined && !data.error)) {
+      console.error('[fetchAPI] Estructura de respuesta inesperada:', data);
+      return { error: 'Estructura de respuesta inesperada', data: null };
+    }
+    
+    return { error: null, data };
+  } catch (error) {
+    console.error('[fetchAPI] Error en la petición:', error);
+    return { error: `Error en la petición: ${error.message}`, data: null };
+  }
+}
+```
 
 ### Configuración de la Conexión
 
@@ -617,6 +796,58 @@ export function StrapiImage({
 3. **Utilizar Formatos Optimizados**: Aprovechar los diferentes formatos que genera Strapi para optimizar el rendimiento.
 4. **Manejar Errores de Carga**: Implementar manejo de errores para cuando las imágenes no se puedan cargar.
 5. **Utilizar Lazy Loading**: Aprovechar las capacidades de lazy loading de Next.js para mejorar el rendimiento.
+6. **Implementar Funciones Robustas**: Crear funciones que puedan manejar diferentes estructuras de datos para imágenes.
+7. **Logging Detallado**: Implementar logs detallados para depurar problemas con las imágenes.
+8. **Validación de URLs**: Asegurarse de que las URLs de las imágenes sean válidas antes de usarlas.
+
+### Solución de Problemas Comunes
+
+#### 1. Imágenes No Visibles en Páginas Específicas
+
+**Problema**: Las imágenes se muestran correctamente en algunas páginas pero no en otras, a pesar de usar el mismo componente.
+
+**Solución**: Verificar la estructura de datos en cada contexto y asegurarse de que la normalización sea consistente:
+
+```typescript
+// En la página principal
+const articles = await getAllArticles();
+
+// En la página de categoría
+const category = await getCategoryBySlug(slug);
+const articles = category.articles;
+
+// Asegurarse de que ambos tengan la misma estructura
+console.log('Estructura de artículo en página principal:', JSON.stringify(articles[0].featuredImage));
+console.log('Estructura de artículo en página de categoría:', JSON.stringify(category.articles[0].featuredImage));
+```
+
+#### 2. Error 400 en Consultas GraphQL
+
+**Problema**: Las consultas GraphQL fallan con error 400 Bad Request.
+
+**Solución**: Verificar la sintaxis de la consulta y asegurarse de que los campos solicitados existan en el esquema:
+
+```typescript
+// En lugar de usar GraphQL para consultas complejas, usar la API REST
+// que suele ser más robusta en Strapi v5.0
+const articlesUrl = `${baseUrl}/api/articles?filters[categories][slug][$eq]=${slug}&populate=*`;
+const response = await fetch(articlesUrl);
+const data = await response.json();
+```
+
+#### 3. Relaciones No Pobladas
+
+**Problema**: Las relaciones (como categorías en artículos) no se pueblan correctamente.
+
+**Solución**: Usar el parámetro `populate` de manera específica:
+
+```typescript
+// Poblar categorías específicamente
+const url = `${baseUrl}/api/articles?populate[categories][populate]=*`;
+
+// O poblar múltiples relaciones
+const url = `${baseUrl}/api/articles?populate[categories][populate]=*&populate[author][populate]=*&populate[featuredImage][populate]=*`;
+```
 
 ## Configuración del Entorno
 
