@@ -300,36 +300,33 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     });
 
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+      <div className="container mx-auto px-4 py-8 md:py-12">
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
           {/* Columna Principal - ajustada a 2/3 del ancho */}
-          <main className="lg:w-2/3">
+          <main className="lg:w-2/3 space-y-8">
             {/* Hero Section mejorado */}
-            <div className="bg-gradient-to-r from-blue-900 to-blue-700 text-white p-8 rounded-lg mb-8">
+            <div className="bg-gradient-to-r from-blue-900 to-blue-700 text-white p-8 sm:p-10 rounded-2xl mb-8 shadow-lg">
               <Link 
                 href="/blog" 
-                className="inline-flex items-center text-blue-100 hover:text-white mb-6 transition-colors"
+                className="inline-flex items-center text-blue-100 hover:text-white mb-6 transition-colors group"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 transition-transform group-hover:-translate-x-1" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
                 </svg>
                 Volver al blog
               </Link>
 
-              <h1 className="text-4xl font-bold mb-4 leading-tight">{article.title}</h1>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 leading-tight">{article.title}</h1>
               
-              <div className="flex items-center text-blue-100 text-sm">
+              <div className="flex flex-wrap items-center text-blue-100 text-sm gap-4">
                 {article.author && (
-                  <>
-                    <span className="flex items-center">
-                      <User className="h-4 w-4 mr-2" />
-                      <span className="font-medium">{article.author.name}</span>
-                    </span>
-                    <span className="mx-3">•</span>
-                  </>
+                  <span className="flex items-center bg-blue-800/30 px-3 py-1.5 rounded-full">
+                    <User className="h-4 w-4 mr-2" />
+                    <span className="font-medium">{article.author.name}</span>
+                  </span>
                 )}
                 {article.publishedAt && (
-                  <span className="flex items-center">
+                  <span className="flex items-center bg-blue-800/30 px-3 py-1.5 rounded-full">
                     <Calendar className="h-4 w-4 mr-2" />
                     <time dateTime={article.publishedAt}>
                       {new Date(article.publishedAt).toLocaleDateString('es-ES', {
@@ -340,11 +337,21 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                     </time>
                   </span>
                 )}
+                {article.categories && article.categories.length > 0 && (
+                  <span className="flex items-center bg-blue-800/30 px-3 py-1.5 rounded-full">
+                    <Tag className="h-4 w-4 mr-2" />
+                    <span className="font-medium">{article.categories[0].name}</span>
+                  </span>
+                )}
+                <span className="flex items-center bg-blue-800/30 px-3 py-1.5 rounded-full">
+                  <Clock className="h-4 w-4 mr-2" />
+                  <span>{readingTime} min de lectura</span>
+                </span>
               </div>
 
               {/* Video Reel Preview */}
               {article.videoReel && (
-                <div className="mt-6 relative aspect-[9/16] max-w-[400px] mx-auto rounded-lg overflow-hidden">
+                <div className="mt-8 relative aspect-[9/16] max-w-[400px] mx-auto rounded-xl overflow-hidden shadow-md">
                   <div className="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center group cursor-pointer">
                     <div className="bg-white/90 rounded-full p-4 transform transition-transform group-hover:scale-110">
                       <Play className="w-8 h-8 text-blue-600" />
@@ -363,7 +370,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               )}
             </div>
 
-            <article>
+            <article className="bg-white rounded-2xl shadow-md overflow-hidden">
               <div>
                 <BreadcrumbSchema items={breadcrumbItems} />
                 <SEO 
@@ -385,18 +392,25 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                 />
                 
                 {/* Main Content - Simplificado */}
-                <div className="py-8">
+                <div className="p-6 md:p-8">
                   {article.featuredImage && (
-                    <div className="relative h-[400px] rounded-lg overflow-hidden mb-4">
-                      <StrapiImage
-                        image={article.featuredImage}
-                        alt={article.title}
-                        width={800}
-                        height={400}
-                        className="object-cover"
-                        priority={true}
-                        objectFit="cover"
-                      />
+                    <div className="mx-auto max-w-4xl mb-8">
+                      <div className="relative aspect-[16/9] rounded-xl overflow-hidden shadow-lg">
+                        <StrapiImage
+                          image={article.featuredImage}
+                          alt={article.title}
+                          width={1200}
+                          height={675}
+                          className="object-cover object-center"
+                          priority={true}
+                          objectFit="cover"
+                        />
+                      </div>
+                      {article.featuredImage.caption && (
+                        <p className="text-sm text-center text-gray-500 mt-2 italic">
+                          {article.featuredImage.caption}
+                        </p>
+                      )}
                     </div>
                   )}
                   
@@ -405,7 +419,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                       content={article.content}
                       videoSnippets={article.videoSnippets}
                       renderVideoSnippet={(video) => (
-                        <div className="my-8 relative aspect-video rounded-lg overflow-hidden">
+                        <div className="my-8 relative aspect-video rounded-lg overflow-hidden shadow-md">
                           <iframe
                             src={video.url}
                             className="absolute inset-0 w-full h-full"
@@ -418,24 +432,25 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                   </div>
 
                   {/* Author and social buttons */}
-                  <div className="mt-8 border-t border-gray-200 pt-8">
+                  <div className="mt-12 border-t border-gray-200 pt-8">
                     {article.author && (
-                      <div className="text-sm text-gray-600 mb-6">
-                        <strong>Sobre el autor:</strong> {article.author.bio}
+                      <div className="bg-blue-50 p-4 rounded-lg text-sm text-gray-700 mb-6">
+                        <div className="font-semibold text-blue-900 mb-1">Sobre el autor:</div>
+                        <p>{article.author.bio || `${article.author.name} es especialista en soluciones de prevención de fatiga y seguridad laboral.`}</p>
                       </div>
                     )}
                     
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mt-6">
                       <div className="flex items-center space-x-4">
-                        <button className="flex items-center text-slate-600 hover:text-blue-700">
+                        <button className="flex items-center text-slate-600 hover:text-blue-700 transition-colors">
                           <ThumbsUp className="h-5 w-5 mr-1" />
                           <span>Me gusta</span>
                         </button>
-                        <button className="flex items-center text-slate-600 hover:text-blue-700">
+                        <button className="flex items-center text-slate-600 hover:text-blue-700 transition-colors">
                           <Share2 className="h-5 w-5 mr-1" />
                           <span>Compartir</span>
                         </button>
-                        <button className="flex items-center text-slate-600 hover:text-blue-700">
+                        <button className="flex items-center text-slate-600 hover:text-blue-700 transition-colors">
                           <Bookmark className="h-5 w-5 mr-1" />
                           <span>Guardar</span>
                         </button>
@@ -451,13 +466,16 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           <aside className="lg:w-1/3 space-y-6">
             {/* Webinars relacionados */}
             {article.webinars && article.webinars.length > 0 && (
-              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-                <h3 className="text-xl font-semibold mb-4">Webinars relacionados</h3>
-                <div className="space-y-4">
+              <div className="bg-white rounded-2xl shadow-md p-6 md:p-7">
+                <h3 className="text-xl font-semibold mb-5 text-gray-900 flex items-center">
+                  <Play className="w-5 h-5 mr-2 text-blue-600" />
+                  Webinars relacionados
+                </h3>
+                <div className="space-y-5">
                   {article.webinars.map((webinar: Webinar, index: number) => (
                     <Dialog key={index}>
                       <DialogTrigger asChild>
-                        <div className="border border-gray-100 rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+                        <div className="border border-gray-100 rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-all hover:border-blue-200 group">
                           <div className="relative aspect-video bg-gray-100">
                             {webinar.FeaturedImage && (
                               <StrapiImage
@@ -466,21 +484,21 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                                 className="object-cover"
                               />
                             )}
-                            <div className="absolute inset-0 bg-black/20 hover:bg-black/30 transition-colors flex items-center justify-center">
-                              <span className="w-12 h-12 flex items-center justify-center rounded-full bg-white/90">
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/10 hover:from-black/70 hover:to-black/20 transition-colors flex items-center justify-center">
+                              <span className="w-12 h-12 flex items-center justify-center rounded-full bg-white/90 group-hover:scale-110 transition-transform">
                                 <Play className="w-6 h-6 text-blue-600" />
                               </span>
                             </div>
                           </div>
                           
                           <div className="p-4">
-                            <h4 className="font-semibold text-lg mb-2">{webinar.Title}</h4>
+                            <h4 className="font-semibold text-lg mb-2 group-hover:text-blue-700 transition-colors">{webinar.Title}</h4>
                             <p className="text-sm text-gray-600 mb-3 line-clamp-2">
                               {webinar.Description}
                             </p>
-                            <div className="flex flex-wrap gap-3 text-sm text-gray-500">
+                            <div className="flex flex-wrap gap-3 text-xs text-gray-500">
                               <span className="flex items-center">
-                                <Calendar className="w-4 h-4 mr-1" />
+                                <Calendar className="w-3.5 h-3.5 mr-1" />
                                 {new Date(webinar.Date).toLocaleDateString('es-ES', {
                                   year: 'numeric',
                                   month: 'long',
@@ -488,7 +506,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                                 })}
                               </span>
                               <span className="flex items-center">
-                                <Clock className="w-4 h-4 mr-1" />
+                                <Clock className="w-3.5 h-3.5 mr-1" />
                                 {webinar.Duration} min
                               </span>
                             </div>
@@ -534,13 +552,18 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
             {/* Recursos relacionados */}
             {article.resources && article.resources.length > 0 && (
-              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-                <h3 className="text-xl font-semibold mb-4">Recursos relacionados</h3>
+              <div className="bg-white rounded-2xl shadow-md p-6 md:p-7">
+                <h3 className="text-xl font-semibold mb-5 text-gray-900 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  Recursos relacionados
+                </h3>
                 <div className="space-y-4">
                   {article.resources.map((resource: Resource, index: number) => (
                     <div 
                       key={index} 
-                      className="flex items-start p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex items-start p-4 border border-gray-100 rounded-xl hover:bg-blue-50/50 transition-colors hover:border-blue-200 group"
                     >
                       <div className="flex-shrink-0 relative w-12 h-12">
                         {resource.FeaturedImage && (
@@ -554,10 +577,10 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                         )}
                       </div>
                       <div className="ml-4 flex-grow">
-                        <h4 className="font-medium text-gray-900">{resource.Title}</h4>
+                        <h4 className="font-medium text-gray-900 group-hover:text-blue-700 transition-colors">{resource.Title}</h4>
                         <p className="text-sm text-gray-500 mb-2">{resource.Description}</p>
                         <div className="flex items-center gap-4">
-                          <span className="text-sm text-gray-500">
+                          <span className="text-xs text-gray-500">
                             {new Date(resource.Date).toLocaleDateString('es-ES', {
                               year: 'numeric',
                               month: 'long',
@@ -568,18 +591,18 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                             href={resource.File && resource.File.url ? `${process.env.NEXT_PUBLIC_STRAPI_API_URL}${resource.File.url}` : resource.URL || '#'}
                             target="_blank"
                             rel="noopener noreferrer" 
-                            className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
+                            className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center"
                           >
                             {resource.Type === 'documento' ? (
                               <>
-                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
                                 Descargar {resource.File?.name ? resource.File.name.split('.').pop()?.toUpperCase() : 'Documento'}
                               </>
                             ) : (
                               <>
-                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                 </svg>
@@ -597,13 +620,18 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
             {/* Reels relacionados */}
             {article.reels && article.reels.length > 0 && (
-              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-                <h3 className="text-xl font-semibold mb-4">Reels relacionados</h3>
+              <div className="bg-white rounded-2xl shadow-md p-6 md:p-7">
+                <h3 className="text-xl font-semibold mb-5 text-gray-900 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Reels relacionados
+                </h3>
                 <div className="grid grid-cols-2 gap-4">
                   {article.reels.map((reel: Reel, index: number) => (
                     <Dialog key={index}>
                       <DialogTrigger asChild>
-                        <div className="relative aspect-[9/16] rounded-lg overflow-hidden group cursor-pointer">
+                        <div className="relative aspect-[9/16] rounded-xl overflow-hidden group cursor-pointer shadow-sm hover:shadow-md transition-shadow">
                           {reel.ThumbnailURL ? (
                             <StrapiImage
                               image={reel.ThumbnailURL}
@@ -614,12 +642,15 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                             <div className="absolute inset-0 bg-gradient-to-b from-blue-500 to-blue-700" />
                           )}
                           
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-3">
-                            <p className="text-white text-sm font-medium line-clamp-2">
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-3">
+                            <div className="bg-white/20 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                              <Play className="w-4 h-4 text-white" />
+                            </div>
+                            <p className="text-white text-sm font-medium line-clamp-2 group-hover:text-blue-100 transition-colors">
                               {reel.Title}
                             </p>
                             <span className="text-white/80 text-xs flex items-center mt-1">
-                              <Play className="w-3 h-3 mr-1" />
+                              <Clock className="w-3 h-3 mr-1" />
                               {reel.Duration}s
                             </span>
                           </div>
@@ -652,14 +683,17 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               </div>
             )}
 
-            {/* Artículos relacionados */}
-            {article.related_articles && article.related_articles.length > 0 && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-xl font-semibold mb-4">Artículos relacionados</h3>
-                <div className="space-y-4">
-                  {article.related_articles.map((relatedArticle: Article, index: number) => (
-                    <div key={index} className="flex items-start space-x-4 border-b border-gray-100 pb-4 last:border-0">
-                      <div className="flex-shrink-0 w-20 h-20 relative overflow-hidden rounded">
+            {/* Artículos relacionados - Modificado para usar los artículos relacionados generados */}
+            {relatedArticles && relatedArticles.length > 0 ? (
+              <div className="bg-white rounded-2xl shadow-md p-6 md:p-7">
+                <h3 className="text-xl font-semibold mb-5 text-gray-900 flex items-center">
+                  <Book className="w-5 h-5 mr-2 text-blue-600" />
+                  Artículos relacionados
+                </h3>
+                <div className="space-y-5">
+                  {relatedArticles.map((relatedArticle: Article, index: number) => (
+                    <div key={index} className="flex items-start space-x-4 border-b border-gray-100 pb-5 last:border-0 last:pb-0 group">
+                      <div className="flex-shrink-0 w-20 h-20 relative overflow-hidden rounded-lg shadow-sm">
                         {relatedArticle.featuredImage ? (
                           <StrapiImage
                             image={relatedArticle.featuredImage}
@@ -677,7 +711,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                       <div className="flex-1">
                         <Link 
                           href={`/blog/${relatedArticle.slug}`} 
-                          className="text-lg font-medium text-gray-900 hover:text-blue-600 transition line-clamp-2"
+                          className="text-lg font-medium text-gray-900 hover:text-blue-700 transition-colors line-clamp-2 group-hover:text-blue-700"
                         >
                           {relatedArticle.title}
                         </Link>
@@ -686,7 +720,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                         </p>
                         <time 
                           dateTime={relatedArticle.publishedAt}
-                          className="text-sm text-gray-500 mt-2 block"
+                          className="text-xs text-gray-500 mt-2 block"
                         >
                           {new Date(relatedArticle.publishedAt).toLocaleDateString('es-ES', {
                             year: 'numeric',
@@ -699,26 +733,72 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                   ))}
                 </div>
               </div>
-            )}
+            ) : article.related_articles && article.related_articles.length > 0 ? (
+              // Mantener el código original como fallback si hay artículos relacionados en el API
+              <div className="bg-white rounded-2xl shadow-md p-6 md:p-7">
+                <h3 className="text-xl font-semibold mb-5 text-gray-900 flex items-center">
+                  <Book className="w-5 h-5 mr-2 text-blue-600" />
+                  Artículos relacionados
+                </h3>
+                <div className="space-y-5">
+                  {article.related_articles.map((relatedArticle: Article, index: number) => (
+                    <div key={index} className="flex items-start space-x-4 border-b border-gray-100 pb-5 last:border-0 last:pb-0 group">
+                      <div className="flex-shrink-0 w-20 h-20 relative overflow-hidden rounded-lg shadow-sm">
+                        {relatedArticle.featuredImage ? (
+                          <StrapiImage
+                            image={relatedArticle.featuredImage}
+                            alt={relatedArticle.title}
+                            width={80}
+                            height={80}
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-blue-100 flex items-center justify-center">
+                            <Book className="h-8 w-8 text-blue-400" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <Link 
+                          href={`/blog/${relatedArticle.slug}`} 
+                          className="text-lg font-medium text-gray-900 hover:text-blue-700 transition-colors line-clamp-2 group-hover:text-blue-700"
+                        >
+                          {relatedArticle.title}
+                        </Link>
+                        <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                          {relatedArticle.excerpt}
+                        </p>
+                        <time 
+                          dateTime={relatedArticle.publishedAt}
+                          className="text-xs text-gray-500 mt-2 block"
+                        >
+                          {new Date(relatedArticle.publishedAt).toLocaleDateString('es-ES', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </time>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
             {/* CTA */}
             {article.cta && (
               <div 
-                className={`rounded-lg p-6 ${
-                  article.cta.backgroundColor === 'blue-50' 
-                    ? 'bg-blue-50' 
-                    : 'bg-gray-50'
-                }`}
+                className="rounded-2xl p-6 md:p-7 shadow-md bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-100"
               >
-                <h3 className="text-xl font-bold mb-2">
+                <h3 className="text-xl font-bold mb-3 text-blue-900">
                   {article.cta.title}
                 </h3>
-                <p className="text-gray-700 mb-4">
+                <p className="text-gray-700 mb-5">
                   {article.cta.description}
                 </p>
                 <Link 
                   href={`/${article.cta.buttonUrl}`}
-                  className="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded text-center transition-colors"
+                  className="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg text-center transition-colors shadow-sm hover:shadow"
                 >
                   {article.cta.buttonText}
                 </Link>
