@@ -59,15 +59,53 @@ export async function getActiveHero() {
     });
 
     if (!response.ok) {
-      throw new Error('Error fetching hero data');
+      console.error('Error en la respuesta del API de hero:', response.status, response.statusText);
+      return getDefaultHero();
     }
 
     const { data } = await response.json();
     
     // Retornar el hero con mayor prioridad (el primero debido al sort)
-    return data.heroes[0] || null;
+    return data.heroes && data.heroes.length > 0 ? data.heroes[0] : getDefaultHero();
   } catch (error) {
     console.error('Error in getActiveHero:', error);
-    return null;
+    return getDefaultHero();
   }
+}
+
+// Función para obtener un hero por defecto
+function getDefaultHero() {
+  console.log('Usando hero por defecto');
+  return {
+    name: "Hero por defecto",
+    isActive: true,
+    displayType: "carousel",
+    autoplayInterval: 5,
+    slides: [
+      {
+        title: "Prevención de accidentes por fatiga y somnolencia",
+        subtitle: "Tecnología + Servicio Preventivo que protege a miles de personal clave en América Latina",
+        backgroundColor: "#144272",
+        textColor: "#FFFFFF",
+        mediaType: "image",
+        image: {
+          url: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+          alternativeText: "Prevención de fatiga laboral"
+        },
+        imagePosition: "right",
+        ctaButtons: [
+          {
+            text: "Conocer soluciones",
+            url: "/soluciones",
+            variant: "primary"
+          },
+          {
+            text: "Contactar",
+            url: "/contacto",
+            variant: "secondary"
+          }
+        ]
+      }
+    ]
+  };
 } 
