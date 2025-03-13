@@ -13,6 +13,7 @@ import DebugImage from '@/components/DebugImage';
 import { formatDate, calculateReadingTime } from '@/lib/utils';
 import ArticleContent from '@/components/blog/ArticleContent';
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import StrapiImage from '@/components/StrapiImage';
 // import WebinarEmbed from '@/components/blog/WebinarEmbed';
 // import ResourceCard from '@/components/blog/ResourceCard';
 
@@ -294,68 +295,6 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
     console.log("Webinars data:", article.webinars);
 
-    const query = `
-      query GetArticleBySlug($slug: String!) {
-        articles(filters: { slug: { eq: $slug } }) {
-          title
-          slug
-          content
-          excerpt
-          publishedAt
-          cta {
-            title
-            description
-            buttonText
-            buttonUrl
-            backgroundColor
-          }
-          featuredImage {
-            url
-            alternativeText
-          }
-          author {
-            name
-            bio
-          }
-          related_articles {
-            title
-            slug
-            excerpt
-            featuredImage {
-              url
-              alternativeText
-            }
-          }
-          resources {
-            title
-            description
-            type
-            url
-            file {
-              url
-              name
-            }
-            featuredImage {
-              url
-              alternativeText
-            }
-            date
-          }
-          webinars {
-            Title
-            Description
-            VideoURL
-            Date
-            Duration
-            Presenter
-            FeaturedImage {
-              url
-            }
-          }
-        }
-      }
-    `;
-
     // Añadir este console.log antes del return
     console.log("Article data before render:", {
       title: article.title,
@@ -366,7 +305,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
     // Añadir este log para debug
     console.log('Datos del artículo para sidebar:', {
-      hasCta: !!article.cta?.length,
+      hasCta: !!article.cta,
       hasWebinars: !!article.webinars?.length,
       hasResources: !!article.resources?.length,
       hasReels: !!article.reels?.length,
@@ -462,12 +401,14 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                 <div className="py-8">
                   {article.featuredImage && (
                     <div className="relative h-[400px] rounded-lg overflow-hidden mb-4">
-                      <Image
-                        src={`${process.env.NEXT_PUBLIC_STRAPI_API_URL}${article.featuredImage.url}`}
-                        alt={article.featuredImage.alternativeText || article.title}
-                        fill
+                      <StrapiImage
+                        image={article.featuredImage}
+                        alt={article.title}
+                        width={800}
+                        height={400}
                         className="object-cover"
-                        priority
+                        priority={true}
+                        objectFit="cover"
                       />
                     </div>
                   )}
@@ -531,10 +472,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                       <DialogTrigger asChild>
                         <div className="border border-gray-100 rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
                           <div className="relative aspect-video bg-gray-100">
-                            <Image
-                              src={`${process.env.NEXT_PUBLIC_STRAPI_API_URL}${webinar.FeaturedImage.url}`}
+                            <StrapiImage
+                              image={webinar.FeaturedImage}
                               alt={webinar.Title}
-                              fill
                               className="object-cover"
                             />
                             <div className="absolute inset-0 bg-black/20 hover:bg-black/30 transition-colors flex items-center justify-center">
@@ -614,10 +554,11 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                       className="flex items-start p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex-shrink-0 relative w-12 h-12">
-                        <Image
-                          src={`${process.env.NEXT_PUBLIC_STRAPI_API_URL}${resource.FeaturedImage.url}`}
+                        <StrapiImage
+                          image={resource.FeaturedImage}
                           alt={resource.Title}
-                          fill
+                          width={48}
+                          height={48}
                           className="object-cover rounded-lg"
                         />
                       </div>
@@ -633,7 +574,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                             })}
                           </span>
                           <a 
-                            href={`${process.env.NEXT_PUBLIC_STRAPI_API_URL}${resource.File.url}`}
+                            href={resource.File && resource.File.url ? `${process.env.NEXT_PUBLIC_STRAPI_API_URL}${resource.File.url}` : resource.URL}
                             target="_blank"
                             rel="noopener noreferrer" 
                             className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
@@ -643,7 +584,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                                 <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
-                                Descargar {resource.File.name.split('.').pop()?.toUpperCase()}
+                                Descargar {resource.File?.name ? resource.File.name.split('.').pop()?.toUpperCase() : 'Documento'}
                               </>
                             ) : (
                               <>
@@ -673,10 +614,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                       <DialogTrigger asChild>
                         <div className="relative aspect-[9/16] rounded-lg overflow-hidden group cursor-pointer">
                           {reel.ThumbnailURL ? (
-                            <Image
-                              src={`${process.env.NEXT_PUBLIC_STRAPI_API_URL}${reel.ThumbnailURL.url}`}
+                            <StrapiImage
+                              image={reel.ThumbnailURL}
                               alt={reel.Title}
-                              fill
                               className="object-cover"
                             />
                           ) : (
@@ -730,10 +670,11 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                     <div key={index} className="flex items-start space-x-4 border-b border-gray-100 pb-4 last:border-0">
                       <div className="flex-shrink-0 w-20 h-20 relative overflow-hidden rounded">
                         {relatedArticle.featuredImage ? (
-                          <Image
-                            src={`${process.env.NEXT_PUBLIC_STRAPI_API_URL}${relatedArticle.featuredImage.url}`}
+                          <StrapiImage
+                            image={relatedArticle.featuredImage}
                             alt={relatedArticle.title}
-                            fill
+                            width={80}
+                            height={80}
                             className="object-cover"
                           />
                         ) : (
@@ -770,25 +711,25 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             )}
 
             {/* CTA */}
-            {article.cta && article.cta.length > 0 && (
+            {article.cta && (
               <div 
                 className={`rounded-lg p-6 ${
-                  article.cta[0].backgroundColor === 'blue-50' 
+                  article.cta.backgroundColor === 'blue-50' 
                     ? 'bg-blue-50' 
                     : 'bg-gray-50'
                 }`}
               >
                 <h3 className="text-xl font-bold mb-2">
-                  {article.cta[0].title}
+                  {article.cta.title}
                 </h3>
                 <p className="text-gray-700 mb-4">
-                  {article.cta[0].description}
+                  {article.cta.description}
                 </p>
                 <Link 
-                  href={`/${article.cta[0].buttonUrl}`}
+                  href={`/${article.cta.buttonUrl}`}
                   className="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded text-center transition-colors"
                 >
-                  {article.cta[0].buttonText}
+                  {article.cta.buttonText}
                 </Link>
               </div>
             )}

@@ -250,7 +250,7 @@ export async function getArticleBySlug(slug: string) {
     console.log('[getArticleBySlug] Base URL:', baseUrl);
     
     // Usar la API REST con la estructura de Strapi v5
-    const url = `${baseUrl}/api/articles?filters[slug][$eq]=${slug}&populate=*`;
+    const url = `${baseUrl}/api/articles?filters[slug][$eq]=${slug}&populate=deep`;
     console.log('[getArticleBySlug] Fetching from URL:', url);
     
     const response = await fetch(url, {
@@ -289,6 +289,24 @@ export async function getArticleBySlug(slug: string) {
     
     console.log('[getArticleBySlug] Article data structure:', Object.keys(articleData));
     
+    // Log para depuración de la imagen destacada
+    console.log('[getArticleBySlug] Featured image data:', articleData.featuredImage);
+    
+    // Log para depuración de los webinars
+    console.log('[getArticleBySlug] Webinars data:', articleData.webinars);
+    
+    // Log para depuración de los recursos
+    console.log('[getArticleBySlug] Resources data:', articleData.resources);
+    
+    // Log para depuración de los reels
+    console.log('[getArticleBySlug] Reels data:', articleData.reels);
+    
+    // Log para depuración de los artículos relacionados
+    console.log('[getArticleBySlug] Related articles data:', articleData.related_articles);
+    
+    // Log para depuración del CTA
+    console.log('[getArticleBySlug] CTA data:', articleData.cta);
+    
     // Normalizar los datos para el componente (formato Strapi v5)
     return {
       id: article.id,
@@ -298,19 +316,21 @@ export async function getArticleBySlug(slug: string) {
       content: articleData.content,
       publishedAt: articleData.publishedAt,
       updatedAt: articleData.updatedAt,
-      featuredImage: articleData.featuredImage?.data ? {
-        url: articleData.featuredImage.data.attributes.url,
-        alternativeText: articleData.featuredImage.data.attributes.alternativeText || '',
-      } : null,
+      // Imagen destacada - mantener la estructura completa para que StrapiImage pueda manejarla
+      featuredImage: articleData.featuredImage,
+      // Categorías
       categories: articleData.categories?.data?.map((cat: any) => ({
+        id: cat.id,
         name: cat.attributes.name,
         slug: cat.attributes.slug,
       })) || [],
+      // Autor
       author: articleData.author?.data ? {
         name: articleData.author.data.attributes.name,
         position: articleData.author.data.attributes.position || '',
         bio: articleData.author.data.attributes.bio || '',
       } : null,
+      // Webinars - mantener la estructura completa para que StrapiImage pueda manejarla
       webinars: articleData.webinars?.data?.map((webinar: any) => ({
         Title: webinar.attributes.Title,
         Description: webinar.attributes.Description,
@@ -318,11 +338,9 @@ export async function getArticleBySlug(slug: string) {
         Date: webinar.attributes.Date,
         Duration: webinar.attributes.Duration,
         Presenter: webinar.attributes.Presenter,
-        FeaturedImage: webinar.attributes.FeaturedImage?.data ? {
-          url: webinar.attributes.FeaturedImage.data.attributes.url,
-          alternativeText: webinar.attributes.FeaturedImage.data.attributes.alternativeText || '',
-        } : null,
+        FeaturedImage: webinar.attributes.FeaturedImage,
       })) || [],
+      // Recursos - mantener la estructura completa para que StrapiImage pueda manejarla
       resources: articleData.resources?.data?.map((resource: any) => ({
         Title: resource.attributes.Title,
         Description: resource.attributes.Description,
@@ -332,39 +350,44 @@ export async function getArticleBySlug(slug: string) {
           url: resource.attributes.File.data.attributes.url,
           name: resource.attributes.File.data.attributes.name,
         } : null,
-        FeaturedImage: resource.attributes.FeaturedImage?.data ? {
-          url: resource.attributes.FeaturedImage.data.attributes.url,
-          alternativeText: resource.attributes.FeaturedImage.data.attributes.alternativeText || '',
-        } : null,
+        FeaturedImage: resource.attributes.FeaturedImage,
         Date: resource.attributes.Date,
       })) || [],
+      // Reels - mantener la estructura completa para que StrapiImage pueda manejarla
       reels: articleData.reels?.data?.map((reel: any) => ({
         Title: reel.attributes.Title,
         Description: reel.attributes.Description,
         Duration: reel.attributes.Duration,
         VideoURL: reel.attributes.VideoURL,
-        ThumbnailURL: reel.attributes.ThumbnailURL?.data ? {
-          url: reel.attributes.ThumbnailURL.data.attributes.url,
-          alternativeText: reel.attributes.ThumbnailURL.data.attributes.alternativeText || '',
-        } : null,
+        ThumbnailURL: reel.attributes.ThumbnailURL,
         PublishedDate: reel.attributes.PublishedDate,
       })) || [],
+      // Artículos relacionados - mantener la estructura completa para que StrapiImage pueda manejarla
       related_articles: articleData.related_articles?.data?.map((relatedArticle: any) => ({
         title: relatedArticle.attributes.title,
         slug: relatedArticle.attributes.slug,
         excerpt: relatedArticle.attributes.excerpt,
-        featuredImage: relatedArticle.attributes.featuredImage?.data ? {
-          url: relatedArticle.attributes.featuredImage.data.attributes.url,
-          alternativeText: relatedArticle.attributes.featuredImage.data.attributes.alternativeText || '',
-        } : null,
+        featuredImage: relatedArticle.attributes.featuredImage,
         publishedAt: relatedArticle.attributes.publishedAt,
       })) || [],
-      cta: articleData.cta ? {
-        title: articleData.cta.title,
-        description: articleData.cta.description,
-        buttonText: articleData.cta.buttonText,
-        buttonUrl: articleData.cta.buttonUrl,
-        backgroundColor: articleData.cta.backgroundColor,
+      // CTA
+      cta: articleData.cta?.data ? {
+        title: articleData.cta.data.attributes.title,
+        description: articleData.cta.data.attributes.description,
+        buttonText: articleData.cta.data.attributes.buttonText,
+        buttonUrl: articleData.cta.data.attributes.buttonUrl,
+        backgroundColor: articleData.cta.data.attributes.backgroundColor,
+      } : null,
+      // Video snippets para incrustar en el contenido
+      videoSnippets: articleData.videoSnippets?.data?.map((snippet: any) => ({
+        id: snippet.id,
+        title: snippet.attributes.title,
+        url: snippet.attributes.url,
+        duration: snippet.attributes.duration,
+      })) || [],
+      // Video reel para la vista previa
+      videoReel: articleData.videoReel?.data ? {
+        thumbnail: articleData.videoReel.data.attributes.thumbnail,
       } : null,
     };
   } catch (error) {
@@ -548,7 +571,7 @@ export async function testArticleStructure() {
     console.log('[testArticleStructure] Base URL:', baseUrl);
     
     // Usar la API REST con la estructura de Strapi v5
-    const url = `${baseUrl}/api/articles?pagination[limit]=1&sort[0]=publishedAt:desc&populate=*`;
+    const url = `${baseUrl}/api/articles?pagination[limit]=1&populate=*`;
     console.log('[testArticleStructure] Fetching from URL:', url);
     
     const response = await fetch(url, {
@@ -569,7 +592,7 @@ export async function testArticleStructure() {
     const responseData = await response.json();
     console.log('[testArticleStructure] Response data structure:', Object.keys(responseData));
     
-    // Extraer el primer artículo de la respuesta
+    // Extraer el artículo de la respuesta
     const articles = responseData.data || [];
     
     if (!articles.length) {
