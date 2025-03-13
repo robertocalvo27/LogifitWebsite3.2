@@ -157,7 +157,19 @@ logifit-web3.0/
     ├── article.ts    # Tipos para artículos
     ├── blog.ts       # Tipos para el blog
     └── service.ts    # Tipos para servicios
-```
+
+## Documentación
+
+El proyecto incluye documentación detallada para facilitar el desarrollo y mantenimiento:
+
+- **Guías de Desarrollo**:
+  - [Manejo de Imágenes](docs/guides/image-handling.md): Guía completa sobre cómo manejar imágenes con el componente StrapiImage
+  - [Componente StrapiImage](components/StrapiImage.README.md): Documentación específica del componente StrapiImage
+
+- **Convenciones de Código**:
+  - Seguimos las convenciones de código de Next.js y React
+  - Utilizamos TypeScript para tipado estático
+  - Implementamos un enfoque modular para la organización del código
 
 ## Características Implementadas
 
