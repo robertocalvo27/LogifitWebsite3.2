@@ -467,7 +467,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               <div className="bg-white rounded-lg shadow-md p-6 mb-8">
                 <h3 className="text-xl font-semibold mb-4">Webinars relacionados</h3>
                 <div className="space-y-4">
-                  {article.webinars.map((webinar, index) => (
+                  {article.webinars.map((webinar: Webinar, index: number) => (
                     <Dialog key={index}>
                       <DialogTrigger asChild>
                         <div className="border border-gray-100 rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
@@ -548,7 +548,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               <div className="bg-white rounded-lg shadow-md p-6 mb-8">
                 <h3 className="text-xl font-semibold mb-4">Recursos relacionados</h3>
                 <div className="space-y-4">
-                  {article.resources.map((resource, index) => (
+                  {article.resources.map((resource: Resource, index: number) => (
                     <div 
                       key={index} 
                       className="flex items-start p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors"
@@ -574,7 +574,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                             })}
                           </span>
                           <a 
-                            href={resource.File && resource.File.url ? `${process.env.NEXT_PUBLIC_STRAPI_API_URL}${resource.File.url}` : resource.URL}
+                            href={resource.File && resource.File.url ? `${process.env.NEXT_PUBLIC_STRAPI_API_URL}${resource.File.url}` : resource.URL || '#'}
                             target="_blank"
                             rel="noopener noreferrer" 
                             className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
@@ -609,7 +609,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               <div className="bg-white rounded-lg shadow-md p-6 mb-8">
                 <h3 className="text-xl font-semibold mb-4">Reels relacionados</h3>
                 <div className="grid grid-cols-2 gap-4">
-                  {article.reels.map((reel, index) => (
+                  {article.reels.map((reel: Reel, index: number) => (
                     <Dialog key={index}>
                       <DialogTrigger asChild>
                         <div className="relative aspect-[9/16] rounded-lg overflow-hidden group cursor-pointer">
@@ -666,7 +666,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h3 className="text-xl font-semibold mb-4">Artículos relacionados</h3>
                 <div className="space-y-4">
-                  {article.related_articles.map((relatedArticle, index) => (
+                  {article.related_articles.map((relatedArticle: Article, index: number) => (
                     <div key={index} className="flex items-start space-x-4 border-b border-gray-100 pb-4 last:border-0">
                       <div className="flex-shrink-0 w-20 h-20 relative overflow-hidden rounded">
                         {relatedArticle.featuredImage ? (
